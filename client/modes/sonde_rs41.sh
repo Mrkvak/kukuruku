@@ -3,10 +3,10 @@
 dir=`dirname "$0"`
 
 tmpdir=`mktemp -d`
-pipe="$tmpdir/fifo"
-mkfifo "$pipe"
+pipe="$tmpdir/x.wav"
+touch $pipe
 
-cat - | "$dir"/sonde_sgp.py "$@" -p "$pipe" &
+cat - | "$dir"/sonde_sgp.py "$@" > "$pipe" &
 
 tpid=$!
 
@@ -16,8 +16,10 @@ function ex() {
   rmdir $tmpdir
 }
 
-trap ex SIGINT SIGTERM
+trap ex SIGINT SIGTERM SIGCHLD SIGHUP
 
-urxvt -e rs41ecc -vv $pipe
+tail -c 1048576 -f "$pipe" | ./rs41ecc -v -b 2>&1 | tee -a /tmp/rs41.log
 
+rm $pipe
+rmdir $tmpdir
 exit
